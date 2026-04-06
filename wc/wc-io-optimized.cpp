@@ -15,6 +15,7 @@ ssize_t writeAllBytes(int fileDesc, const char *buffer, ssize_t bytesToWrite);
 void handleUsingMMAP(struct stat &fileMetaData, char *filePtr, bool &isAWord, ssize_t &lineCount, ssize_t &wordCount, ssize_t &byteCount, ssize_t &maxLineLength);
 void handleUsingREAD(int fileDesc, ssize_t &lineCount, ssize_t &wordCount, ssize_t &byteCount, bool &isAWord, ssize_t &maxLineLength);
 void logInformation(bool &showLineCount, bool &showWordCount, bool &showByteCount, bool &showMaxLineLength, ssize_t &lineCount, ssize_t &wordCount, ssize_t &byteCount, ssize_t &maxLineLength, const char *filePath);
+bool is_space(char& c);
 void logOpenError(const char *filePath);
 void logReadError();
 void logWriteError();
@@ -207,7 +208,7 @@ void handleUsingREAD(int fileDesc, ssize_t &lineCount, ssize_t &wordCount, ssize
             for (int i = 0; i < bytesRead; ++i)
             {
                 char byte{buffer[i]};
-                if (isspace(static_cast<unsigned char>(byte)))
+                if (is_space(byte))
                 {
                     isAWord = false;
                 }
@@ -347,6 +348,10 @@ void logInformation(bool &showLineCount, bool &showWordCount, bool &showByteCoun
         logWriteError();
         exit(3);
     }
+}
+
+bool is_space(char& c) {
+    return c == ' ' || c == '\n' || c == '\t' || c == '\r' || c == '\v' || c == '\f';
 }
 
 void logOpenError(const char *filePath)
