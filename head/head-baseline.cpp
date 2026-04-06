@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <cstdlib>
+#include <climits>
 #include <errno.h>
 #include <fcntl.h>
 #include <iostream>
