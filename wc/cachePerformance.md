@@ -1,13 +1,21 @@
 ## Performance Analysis (Cachegrind)
 
-This "wc-io-optimized.cpp" implementation was compared against the system `wc` utility using Valgrind's Cachegrind to evaluate performance.
+This implementation was compared against the system `wc` utility using Valgrind's Cachegrind with cache parameters configured to match the host machine.
 
 ### Setup
 
-Both programs were executed on the same input file:
+Both programs were executed on the same input file.
 
-```bash
-valgrind --tool=cachegrind --cache-sim=yes <command>
+Cache configuration used:
+
+* I1: 128 KB, 8-way associative, 128B line size
+* D1: 64 KB, 8-way associative, 128B line size
+
+```bash id="r3p0vh"
+valgrind --tool=cachegrind \
+  --I1=131072,8,128 \
+  --D1=65536,8,128 \
+  --cache-sim=yes <command>
 ```
 
 ---
@@ -16,36 +24,40 @@ valgrind --tool=cachegrind --cache-sim=yes <command>
 
 | Metric       | This Implementation | GNU `wc` |
 | ------------ | ------------------- | -------- |
-| I refs       | ~1,550,000          | ~200,000 |
-| D refs       | ~630,000            | ~76,000  |
-| I1 miss rate | ~0.12%              | ~0.79%   |
-| D1 miss rate | ~3.1%               | ~4.2%    |
+| I refs       | ~2,037,000          | ~537,000 |
+| D refs       | ~882,000            | ~163,000 |
+| I1 miss rate | ~0.05%              | ~0.16%   |
+| D1 miss rate | ~1.1%               | ~1.0%    |
 
 ---
 
 ### Key Observations
 
-* This implementation executes **~7–8× more instructions** than GNU `wc`.
-* It performs **~8× more data accesses**.
-* Despite this, it achieves **better cache locality** (lower miss rates).
-* Overall performance is dominated by the higher instruction count rather than cache behavior.
+* This implementation executes **~3.8× more instructions** than GNU `wc`.
+* It performs **~5× more data accesses**.
+* Instruction cache performance is **better** in this implementation (lower I1 miss rate).
+* Data cache performance is **comparable** between both implementations.
 
 ---
 
 ### Reasons for the Gap
 
-1. **Per-byte Processing Overhead**
-   Each character is processed individually with multiple condition checks, increasing instruction count.
+1. **Higher Per-byte Processing Cost**
+   Each character is processed with multiple checks (whitespace detection, word tracking, line tracking), increasing instruction count.
 
 2. **Branch-heavy Inner Loop**
-   Frequent branching (word detection, newline handling, etc.) adds overhead in tight loops.
+   Frequent branching inside the tight loop leads to more executed instructions.
+
+3. **More Work Per Input Byte**
+   Even with efficient I/O (read/mmap), the computation performed per byte is higher than in the system implementation.
+
+4. **Instruction Efficiency Dominates**
+   Since cache behavior is already good in both implementations, the primary difference comes from total instructions executed.
 
 ---
 
 ### Takeaway
 
-The primary bottleneck is **instruction count**, not cache efficiency.
+The dominant factor in this comparison is **instruction count**, not cache performance.
 
-Even with good cache behavior, executing significantly more instructions leads to slower performance.
-
-> Reducing the amount of work per byte is more important than optimizing cache usage alone.
+Even with similar cache behavior under realistic cache parameters, executing significantly more instructions results in slower performance.
